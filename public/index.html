@@ -24,17 +24,30 @@
     <form id="form" action="">
       <!--<input  autocomplete="off" /><button>Send</button>-->
       <textarea id="input"  rows="4" cols="50"></textarea>
-      <div id="status"><span id="users">0</span></div>
+      <div id="status">
+        <span id="users">0</span>
+        <input id="roomInp"  />
+      </div>
     </form>
   </body>
   <script src="/socket.io/socket.io.js"></script>
   <script>
-    var socket = io();
+
+    var room="doc";
+   
+    var url = window.location.href.split("/")
+    console.log(url)
+    if(url[4])
+      room = url[4]
+
+    var socket = io('', {query: `secret=abc123&client=webtest&room=${room}`});
+
   
     var messages = document.getElementById('messages');
     var form = document.getElementById('form');
     var input = document.getElementById('input');
     var status = document.getElementById('status');
+    var roomInput = document.getElementById('roomInp');
   
     form.addEventListener('submit', function(e) {
       e.preventDefault();
@@ -54,6 +67,16 @@
         console.log('CH')
         if (input.value) {
             socket.emit('message', input.value);
+        }
+    }, false);
+    
+    roomInput.value = room;
+    roomInput.addEventListener('change', function() {
+      console.log('Room')
+      if (roomInput.value) {
+          room =  roomInput.value;
+          window.location.href= `/client/${room}`
+
         }
     }, false);
 

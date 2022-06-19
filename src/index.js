@@ -12,6 +12,9 @@ app.get('/', (req, res) => {
 app.get('/client', (req, res) => {
     res.sendFile(path.resolve("") +'/public/index.html');
 });
+app.get('/client/*', (req, res) => {
+    res.sendFile(path.resolve("") +'/public/index.html');
+});
 
 
 app.get('/version', (req, res) => {
