@@ -21,10 +21,15 @@ app.get('/version/clientdesktop', (req, res) => {
     res.send(versions.clientdesktop);
 });
 
-var document = "";
+var document = [];
 
 io.on('connection', (socket) => {
-    socket.join("doc");
+
+    console.log("q",socket.handshake.query)
+
+    var room = socket.handshake.query.room || "doc";
+
+    socket.join(room);
     const users = [];
 
     //console.log(io.sockets.adapter.rooms['doc']);
@@ -38,10 +43,10 @@ io.on('connection', (socket) => {
     
     socket.emit("users", users);
 
-    socket.emit("past_history", document);
+    socket.emit("past_history", document[room]);
 
     // notify existing users
-    socket.broadcast.emit("user_connected", {
+    socket.broadcast.to(room).emit("user_connected", {
         userID: socket.id,
         //username: socket.username,
     });
@@ -49,15 +54,15 @@ io.on('connection', (socket) => {
     console.log('a user connected');
 
     socket.on('message', (msg) => {
-        console.log("New message",socket.id,"🟥 ",  msg)
+        console.log("",socket.id," ✉️ ",room," ===> ",  msg)
         //io.emit('message', msg);
-        document=msg;
-        socket.broadcast.emit("message", msg);
+        document[room]=msg;
+        socket.broadcast.to(room).emit("message", msg);
     });
 
     socket.on('disconnect', () => {
         console.log('user disconnected ',socket.id);
-        socket.broadcast.emit("user_disconnected", {
+        socket.broadcast.to(room).emit("user_disconnected", {
             userID: socket.id,
         });
     });
