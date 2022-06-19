@@ -3,6 +3,7 @@ const server = require('http').createServer(app);
 const io = require('socket.io')(server);
 const path = require("path");
 
+const versions = {server:"1.0.1",clientdesktop:"1.0.1",protocol:1}
 
 app.get('/', (req, res) => {
     res.send('Hello world<');
@@ -12,6 +13,13 @@ app.get('/client', (req, res) => {
     res.sendFile(path.resolve("") +'/public/index.html');
 });
 
+
+app.get('/version', (req, res) => {
+    res.send(versions);
+});
+app.get('/version/clientdesktop', (req, res) => {
+    res.send(versions.clientdesktop);
+});
 
 var document = "";
 
