@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ru" dir="ltr">
+
+<head>
+    <meta charset="utf-8">
+    <title>Notechat</title>
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0" />
+    <meta author="Alex B" />
+    <meta property="og:image" content="/assets/og_image.jpg" />
+    <meta name="description" content="Блокнот, но с многопользовательским редактированием." /> 
+
+
+    <link rel="shortcut icon" href="/assets/Windows_Notepad_Icon.png" type="image/png" />
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous" / >
+    
+    <link rel="stylesheet" type="text/css" href="https://notechat.ru/assets/win95.css" />
+    <link rel="stylesheet" type="text/css" href="/assets/chat.css" />
+</head>
+
+<body style="background-image: url(assets/clouds2.jpg); color:#212529; padding-bottom: 0;" class="windows-scrollbar">
+
+    <div class="window-wrapper d-flex justify-content-center" >
+        <div class="window" style="overflow: hidden; resize: both; min-width: 510px; min-height: 420px;">
+        <div class="window-border h-100" style="position: relative;">
+            <div class="title-bar  h-count">
+                <div class="control-box">
+                    <a class="button-3d minimize"><span>&nbsp;</span></a>
+                    <a class="button-3d maximize"><span>&nbsp;</span></a>
+                    <a class="button-3d close"><span>&nbsp;</span></a>
+                </div>
+                <span class="title">
+                    Notepad
+                </span>
+            </div>
+            <div class="menu-bar  h-count">
+                <a><span>F</span>ile</a>
+                <a><span>E</span>dit</a>
+                <a><span>V</span>iew</a>
+                <a><span>I</span>nsert</a>
+                <a>F<span>o</span>rmat</a>
+                <a><span>T</span>ools</a>
+                <a>T<span>a</span>ble</a>
+                <a><span>W</span>indow</a>
+                <a><span>H</span>elp</a>
+            
+                <div class="clear"></div>
+            </div>
+            <div class="clear"></div>
+            <div class="content " style="height: calc(100% - 72px);">
+                <div class="content-box " style="height: 100%; position: relative;">
+                        <textarea id="input" class="document-content" style="margin-left:4px; width: calc(100% - 4px); height: 100%;border: none;padding: 0px;resize: none;">
+                        </textarea>
+                </div> 
+            </div>
+            <div class="status-bar h-count" style="position: absolute; bottom: 0; width: calc(100% - 4px);">
+                <div class="status-bar-content">
+                            <span class="box">
+                                <span id="users">Page 1</span>
+                                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                <input id="roomInp" style="width: 64px;background: transparent;border: transparent;">
+                            </span>
+                            <span class="box">
+                                At 1"
+                                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                Ln 1
+                                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                Col 1
+                                &nbsp;&nbsp;&nbsp;&nbsp;
+                            </span>
+                            <span class="box disabled">
+                                REC
+                            </span>
+                            <span class="box disabled">
+                                TRK
+                            </span>
+                            <span class="box disabled">
+                                EXT
+                            </span>
+                            <span class="box disabled">
+                                OVR
+                            </span>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      var room="doc";
+      var url = window.location.href.split("/")
+      console.log(url)
+      if(url[4])
+        room = url[4]
+  
+      var socket = io('', {query: `secret=abc123&client=webtest&room=${room}`});
+    
+      var form = document.getElementById('form');
+      var input = document.getElementById('input');
+      var status = document.getElementById('status');
+      var roomInput = document.getElementById('roomInp');
+    
+      /*form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (input.value) {
+          socket.emit('message', input.value);
+  
+          //var item = document.createElement('li');
+          //item.textContent = input.value;
+          //messages.appendChild(item);
+          //window.scrollTo(0, document.body.scrollHeight);
+  
+          //input.value = '';
+        }
+      });*/
+  
+      input.addEventListener('change', function() {
+          console.log('CH')
+          if (input.value) {
+              socket.emit('message', input.value);
+          }
+      }, false);
+      
+      roomInput.value = room;
+      roomInput.addEventListener('change', function() {
+        console.log('Room')
+        if (roomInput.value) {
+            room =  roomInput.value;
+            window.location.href= `/client/${room}`
+  
+          }
+      }, false);
+  
+      socket.on('past_history', function(msg) {
+          input.value = msg;
+        /*var item = document.createElement('li');
+        item.textContent = msg;
+        messages.appendChild(item);
+        window.scrollTo(0, document.body.scrollHeight);*/
+      });
+    
+      socket.on('message', function(msg) {
+          input.value = msg;
+          /*
+        var item = document.createElement('li');
+        item.textContent = msg;
+        messages.appendChild(item);
+        window.scrollTo(0, document.body.scrollHeight);*/
+      });
+  
+      var users = []
+  
+      socket.on('users', function(msg) {
+          users = msg;
+        console.log("users ",msg)
+        updateStat()
+      });
+  
+      socket.on('user_connected', function(msg) {
+          users.push(msg)
+        console.log("user_connected ",msg)
+        updateStat()
+      });
+      
+      socket.on('user_disconnected', function(msg) {
+        console.log("user_disconnected ",msg)
+        var index = users.indexOf(msg);
+        if (index !== -1) {
+          users.splice(index, 1);
+        }
+        updateStat()
+      });
+  
+      function updateStat(){
+          console.log(users.length)
+          document.getElementById('users').innerHTML  = users.length.toString();
+      }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2" crossorigin="anonymous"></script>
+</body>
+</html>

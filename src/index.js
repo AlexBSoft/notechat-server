@@ -1,4 +1,5 @@
-const app = require('express')();
+const express = require('express');
+const app = express();
 const server = require('http').createServer(app);
 const io = require('socket.io')(server);
 const path = require("path");
@@ -6,14 +7,14 @@ const path = require("path");
 const versions = {server:"1.0.1",clientdesktop:"1.0.1",protocol:1}
 
 app.get('/', (req, res) => {
-    res.send('Hello world<');
+    res.send('Hello world<\nnotechat.ru');
 });
-
+app.use('/assets', express.static(path.resolve("") +'/public/assets/'));
 app.get('/client', (req, res) => {
-    res.sendFile(path.resolve("") +'/public/index.html');
+    res.sendFile(path.resolve("") +'/public/notepad.html');
 });
 app.get('/client/*', (req, res) => {
-    res.sendFile(path.resolve("") +'/public/index.html');
+    res.sendFile(path.resolve("") +'/public/notepad.html');
 });
 
 
