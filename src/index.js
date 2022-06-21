@@ -6,6 +6,8 @@ const path = require("path");
 
 const versions = {server:"1.0.1",clientdesktop:"1.0.1",protocol:1}
 
+const Diff = require('diff');
+
 app.get('/', (req, res) => {
     res.send('Hello world<\nnotechat.ru');
 });
@@ -88,7 +90,7 @@ io.on('connection', (socket) => {
     socket.emit("users", users);
 
     if(!document[room])
-        document[room] = {}
+        document[room] = {text:"",lastChanged:0}
 
     socket.emit("past_history", document[room].text);
 
@@ -100,12 +102,35 @@ io.on('connection', (socket) => {
 
     console.log('a user connected');
 
+    // LEGACY
     socket.on('message', (msg) => {
         console.log("",socket.id," ✉️ ",room," ===> ",  msg)
         //io.emit('message', msg);
         document[room].text=msg;
         document[room].lastChanged = Date.now();
         socket.broadcast.to(room).emit("message", msg);
+    });
+
+    socket.on('patch', (msg) => {
+        console.log("",socket.id," ✉️ ",room," ===> ",  msg)
+        //io.emit('message', msg);
+        //console.log(Diff.parsePatch(msg))
+
+        // ТУТ ВОЗМОЖНА ОШИБКА: ДРУГОЙ ПОЛЬЗОВАТЕЛЬ УСПЕЛ ИЗМЕНИТЬ ДОКУМЕНТ
+        try{
+            let p = Diff.applyPatch( document[room].text , Diff.parsePatch(msg))
+            console.log("pApplyed", p)
+            document[room].text= p;
+
+            document[room].lastChanged = Date.now();
+            socket.broadcast.to(room).emit("patch", msg);
+        }catch(e){
+            io.to(room).emit('patch_error', "error");
+        }
+    });
+
+    socket.on('cursor', (msg) => {
+        io.to(room).emit('cursor', {userID: socket.userID, socketID: socket.id, pos: msg});
     });
 
     socket.on('disconnect', () => {
