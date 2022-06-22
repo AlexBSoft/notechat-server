@@ -342,7 +342,20 @@
 }
 
 .document-content {
+    white-space: pre;
 }
+
+.cursorhere{
+    border-left: .15em solid aqua;
+}
+
+.highlight {
+    background: aqua;
+}
+
+[contenteditable] {
+    outline: 0px solid transparent;
+  }
 
 .document {
     margin: 5px auto 10px auto;

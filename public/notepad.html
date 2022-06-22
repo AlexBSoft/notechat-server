@@ -50,9 +50,8 @@
                 <div class="clear"></div>
                 <div class="content " style="height: calc(100% - 72px);">
                     <div class="content-box " style="height: 100%; position: relative;">
-                        <textarea id="input" class="document-content"
-                            style="margin-left:4px; width: calc(100% - 4px); height: 100%;border: none;padding: 0px;resize: none;">
-                        </textarea>
+                        <div id="input" class="document-content" contenteditable="true"
+                            style="margin-left:4px; width: calc(100% - 4px); height: 100%;border: none;padding: 0px;resize: none; white-space: pre;"></div>
                     </div>
                 </div>
                 <div class="status-bar h-count" style="position: absolute; bottom: 0; width: calc(100% - 4px);">
@@ -99,7 +98,7 @@
 
         var socket = io('', { query: `secret=abc123&client=webtest&room=${room}` });
 
-        let oldText = "a";
+        let oldText = "";
 
         var form = document.getElementById('form');
         var input = document.getElementById('input');
@@ -119,12 +118,18 @@
             //input.value = '';
           }
         });*/
-        
-        input.addEventListener('change', function () {
+        input.focus();
+        input.addEventListener('input', function () {
+            var sel = document.getSelection();
+            console.log(sel.baseOffset, sel.extentOffset)
+            let val = input.innerText;
+            console.log(oldText, val)
+            if (val) {
 
-            console.log(input.selectionStart, input.selectionEnd)
-            if (input.value) {
-                let val = input.value
+                // replace br with new lines
+                //let a = input.innerHTML.replace(/(<br>)/g, '\r\n');
+                //input.innerHTML = a;
+                //val = input.textContent;
 
                 let diff = Diff.diffChars(oldText, val);
                 console.log("diff",diff)
@@ -139,14 +144,25 @@
 
                 //socket.emit('message', val);
                 socket.emit('patch', patch);
-
                 oldText = val;
+                //socket.emit('cursor', {start:sel.baseOffset, end: sel.extentOffset});
             }
         }, false);
 
         // TODO: track cursor position
-        input.addEventListener("select", function () {
-            socket.emit('cursor', {start:input.selectionStart, end: input.selectionEnd});
+        document.addEventListener("selectionchange", function () {
+            console.log("Select")
+            var sel = document.getSelection();
+            var seltext = sel.toString();
+            let selstart = input.innerText.indexOf(seltext);
+            console.log("nd", sel.anchorNode, sel.anchorNode.parentElement, Array.from(sel.anchorNode.parentElement.children).indexOf(sel.anchorNode) )
+            //socket.emit('cursor', {start: sel.baseOffset, end:   sel.baseOffset+sel.rangeCount sel.extentOffset});
+            // if our select is only cursor
+            if(sel.baseOffset==sel.extentOffset && seltext.length==0)
+                socket.emit('cursor', {start: sel.baseOffset, end:  sel.extentOffset});
+            // if we selecting range
+            else
+                socket.emit('cursor', {start: selstart, end:  selstart+ seltext.length});
         }, false);
 
         roomInput.value = room;
@@ -158,10 +174,38 @@
 
             }
         }, false);
+        
+        socket.on('patch', function (msg) {
+            console.log("PATCH");
+            let p = Diff.applyPatch(oldText , Diff.parsePatch(msg));
+            oldText = p;
+            input.innerText = p;
+            
+            /*
+          var item = document.createElement('li');
+          item.textContent = msg;
+          messages.appendChild(item);
+          window.scrollTo(0, document.body.scrollHeight);*/
+        });
+
+        socket.on('cursor', function (msg) {
+            console.log("Cursor get",msg)
+            input.innerHTML = input.innerText;
+            var innerHTML = input.innerHTML;
+            if (msg.sel.start >= 0) {
+                if(msg.sel.start == msg.sel.end){
+                    input.innerHTML = innerHTML.substring(0,msg.sel.start) + "<span class='cursorhere'>" + innerHTML.substring(msg.sel.start,msg.sel.end+1) + "</span>" + innerHTML.substring(msg.sel.end+1);
+                }else
+                input.innerHTML = innerHTML.substring(0,msg.sel.start) + "<span class='highlight'>" + innerHTML.substring(msg.sel.start,msg.sel.end) + "</span>" + innerHTML.substring(msg.sel.end);
+            }
+            
+        });
 
         socket.on('past_history', function (msg) {
-            input.value = msg;
-            //oldText = msg;
+            console.log("past",msg)
+            input.innerText = msg || "";
+            oldText = msg || "";
+            //
             /*var item = document.createElement('li');
             item.textContent = msg;
             messages.appendChild(item);

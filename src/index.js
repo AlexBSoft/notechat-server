@@ -125,12 +125,17 @@ io.on('connection', (socket) => {
             document[room].lastChanged = Date.now();
             socket.broadcast.to(room).emit("patch", msg);
         }catch(e){
+            console.log("💢 ERROR", e)
             io.to(room).emit('patch_error', "error");
         }
     });
 
     socket.on('cursor', (msg) => {
-        io.to(room).emit('cursor', {userID: socket.userID, socketID: socket.id, pos: msg});
+        console.log("cursor", msg)
+        // reverse if end > start
+        if(msg.start > msg.end)
+            [msg.start, msg.end] = [msg.end, msg.start];
+        socket.broadcast.to(room).emit('cursor', {userID: socket.userID, socketID: socket.id, sel: msg});
     });
 
     socket.on('disconnect', () => {
