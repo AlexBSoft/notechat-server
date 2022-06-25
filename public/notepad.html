@@ -51,7 +51,7 @@
                 <div class="content " style="height: calc(100% - 72px);">
                     <div class="content-box " style="height: 100%; position: relative;">
                         <div id="input" class="document-content" contenteditable="true"
-                            style="margin-left:4px; width: calc(100% - 4px); height: 100%;border: none;padding: 0px;resize: none; white-space: pre;"></div>
+                            style="display: inline-block; margin-left:4px; width: calc(100% - 4px); height: 100%;border: none;padding: 0px;resize: none; white-space: pre;"></div>
                     </div>
                 </div>
                 <div class="status-bar h-count" style="position: absolute; bottom: 0; width: calc(100% - 4px);">
@@ -88,8 +88,10 @@
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
-    <script src="/assets/diff.js"></script>
+    <script src="/assets/diff-match-patch.js"></script>
     <script>
+       const dmp = new diff_match_patch();
+
         var room = "doc";
         var url = window.location.href.split("/")
         console.log(url)
@@ -119,6 +121,7 @@
           }
         });*/
         input.focus();
+        
         input.addEventListener('input', function () {
             var sel = document.getSelection();
             console.log(sel.baseOffset, sel.extentOffset)
@@ -126,26 +129,14 @@
             console.log(oldText, val)
             if (val) {
 
-                // replace br with new lines
-                //let a = input.innerHTML.replace(/(<br>)/g, '\r\n');
-                //input.innerHTML = a;
-                //val = input.textContent;
+                var gdiff = dmp.diff_main(oldText, val);
+                var dpatch = dmp.patch_make(gdiff)
 
-                let diff = Diff.diffChars(oldText, val);
-                console.log("diff",diff)
+                //var gpatchtext = dmp.patch_toText(dpatch)
+                //console.log("GOOGLE ", gdiff, dpatch, gpatchtext)
 
-                let patch = Diff.createTwoFilesPatch("old", "new", oldText, val, "oldh", "newh")
-                console.log("patch",patch)
-
-                let pp = Diff.parsePatch(patch)
-                console.log(pp)
-
-                console.log( Diff.applyPatch(oldText, Diff.parsePatch(patch)) )
-
-                //socket.emit('message', val);
-                socket.emit('patch', patch);
+                socket.emit('patch', dpatch);
                 oldText = val;
-                //socket.emit('cursor', {start:sel.baseOffset, end: sel.extentOffset});
             }
         }, false);
 
@@ -155,11 +146,29 @@
             var sel = document.getSelection();
             var seltext = sel.toString();
             let selstart = input.innerText.indexOf(seltext);
-            console.log("nd", sel.anchorNode, sel.anchorNode.parentElement, Array.from(sel.anchorNode.parentElement.children).indexOf(sel.anchorNode) )
+
+            var iter = document.createNodeIterator(input, NodeFilter.SHOW_ALL)
+
+            // print all text nodes
+            let i = 0;
+            let lineNumber = 0;
+            let line = 0;
+            let prevNode = {};
+            while (node = iter.nextNode()) {
+                if(node == sel.anchorNode)
+                    break;
+                if(prevNode.nodeType != 3) // We don't count <br> after text nodes as lines
+                    line++;
+                prevNode = node;
+                i++;
+            }
+            
+            
+            console.log("nd", sel.anchorNode, i, line, sel.baseOffset)
             //socket.emit('cursor', {start: sel.baseOffset, end:   sel.baseOffset+sel.rangeCount sel.extentOffset});
             // if our select is only cursor
             if(sel.baseOffset==sel.extentOffset && seltext.length==0)
-                socket.emit('cursor', {start: sel.baseOffset, end:  sel.extentOffset});
+                socket.emit('cursor', {start: sel.baseOffset, end:  sel.extentOffset, line: line});
             // if we selecting range
             else
                 socket.emit('cursor', {start: selstart, end:  selstart+ seltext.length});
@@ -176,16 +185,11 @@
         }, false);
         
         socket.on('patch', function (msg) {
-            console.log("PATCH");
-            let p = Diff.applyPatch(oldText , Diff.parsePatch(msg));
-            oldText = p;
-            input.innerText = p;
-            
-            /*
-          var item = document.createElement('li');
-          item.textContent = msg;
-          messages.appendChild(item);
-          window.scrollTo(0, document.body.scrollHeight);*/
+            console.log("PATCH", msg);
+            let result = dmp.patch_apply(msg, oldText);
+            console.log(result)
+            oldText = result[0];
+            input.innerText = result[0];
         });
 
         socket.on('cursor', function (msg) {

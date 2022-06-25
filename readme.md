@@ -33,6 +33,6 @@ Deploy on heroku or where you want
 
 ## Notechat
 
-- Desktop client [https://github.com/zoxione/Notechat-desktop](https://github.com/AlexBSoft/notechat-server)
+- Desktop client [https://github.com/zoxione/Notechat-desktop](https://github.com/zoxione/Notechat-desktop)
 
 - 

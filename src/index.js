@@ -6,7 +6,8 @@ const path = require("path");
 
 const versions = {server:"1.0.1",clientdesktop:"1.0.1",protocol:1}
 
-const Diff = require('diff');
+const DiffMatchPatch = require('diff-match-patch');
+const dmp = new DiffMatchPatch();
 
 app.get('/', (req, res) => {
     res.send('Hello world<\nnotechat.ru');
@@ -118,9 +119,10 @@ io.on('connection', (socket) => {
 
         // ТУТ ВОЗМОЖНА ОШИБКА: ДРУГОЙ ПОЛЬЗОВАТЕЛЬ УСПЕЛ ИЗМЕНИТЬ ДОКУМЕНТ
         try{
-            let p = Diff.applyPatch( document[room].text , Diff.parsePatch(msg))
-            console.log("pApplyed", p)
-            document[room].text= p;
+            let result = dmp.patch_apply(msg, document[room].text);
+            
+            console.log("pApplyed", result)
+            document[room].text= result[0]; // [0] - измененный текст
 
             document[room].lastChanged = Date.now();
             socket.broadcast.to(room).emit("patch", msg);
