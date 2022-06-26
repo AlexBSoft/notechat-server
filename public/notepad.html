@@ -107,19 +107,7 @@
         var status = document.getElementById('status');
         var roomInput = document.getElementById('roomInp');
 
-        /*form.addEventListener('submit', function(e) {
-          e.preventDefault();
-          if (input.value) {
-            socket.emit('message', input.value);
-    
-            //var item = document.createElement('li');
-            //item.textContent = input.value;
-            //messages.appendChild(item);
-            //window.scrollTo(0, document.body.scrollHeight);
-    
-            //input.value = '';
-          }
-        });*/
+        
         input.focus();
         
         input.addEventListener('input', function () {
@@ -128,14 +116,15 @@
             let val = input.innerText;
             console.log(oldText, val)
             if (val) {
-
+                val = val.replace(/\n/g, "\r\n") // Реплейс, чтобы в десктопном приложении не ехал текст. Майкрософтсовский текстбокс юзает \r\n, а в браузере \n. Поэтому приводим все в \r\n.
+                //oldText = oldText.replace(/\n/g, "\r\n")
                 var gdiff = dmp.diff_main(oldText, val);
                 var dpatch = dmp.patch_make(gdiff)
 
-                //var gpatchtext = dmp.patch_toText(dpatch)
-                //console.log("GOOGLE ", gdiff, dpatch, gpatchtext)
+                var gpatchtext = dmp.patch_toText(dpatch)
+                console.log("GOOGLE ", gpatchtext)
 
-                socket.emit('patch', dpatch);
+                socket.emit('patch', gpatchtext);
                 oldText = val;
             }
         }, false);
@@ -186,9 +175,11 @@
         
         socket.on('patch', function (msg) {
             console.log("PATCH", msg);
-            let result = dmp.patch_apply(msg, oldText);
+            let patch = dmp.patch_fromText(msg);
+            let result = dmp.patch_apply(patch, oldText);
             console.log(result)
             oldText = result[0];
+            //oldText = oldText.replace(/\n/g, "\r\n")
             input.innerText = result[0];
         });
 
@@ -214,15 +205,6 @@
             item.textContent = msg;
             messages.appendChild(item);
             window.scrollTo(0, document.body.scrollHeight);*/
-        });
-
-        socket.on('message', function (msg) {
-            input.value = msg;
-            /*
-          var item = document.createElement('li');
-          item.textContent = msg;
-          messages.appendChild(item);
-          window.scrollTo(0, document.body.scrollHeight);*/
         });
 
         var users = []

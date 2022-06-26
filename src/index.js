@@ -4,7 +4,7 @@ const server = require('http').createServer(app);
 const io = require('socket.io')(server);
 const path = require("path");
 
-const versions = {server:"1.0.1",clientdesktop:"1.0.1",protocol:1}
+const versions = {server:"1.0.1",clientdesktop:"1.0.1",protocol:2}
 
 const DiffMatchPatch = require('diff-match-patch');
 const dmp = new DiffMatchPatch();
@@ -103,23 +103,14 @@ io.on('connection', (socket) => {
 
     console.log('a user connected');
 
-    // LEGACY
-    socket.on('message', (msg) => {
-        console.log("",socket.id," ✉️ ",room," ===> ",  msg)
-        //io.emit('message', msg);
-        document[room].text=msg;
-        document[room].lastChanged = Date.now();
-        socket.broadcast.to(room).emit("message", msg);
-    });
-
     socket.on('patch', (msg) => {
         console.log("",socket.id," ✉️ ",room," ===> ",  msg)
-        //io.emit('message', msg);
-        //console.log(Diff.parsePatch(msg))
 
         // ТУТ ВОЗМОЖНА ОШИБКА: ДРУГОЙ ПОЛЬЗОВАТЕЛЬ УСПЕЛ ИЗМЕНИТЬ ДОКУМЕНТ
         try{
-            let result = dmp.patch_apply(msg, document[room].text);
+
+            let patch = dmp.patch_fromText(msg);
+            let result = dmp.patch_apply(patch, document[room].text);
             
             console.log("pApplyed", result)
             document[room].text= result[0]; // [0] - измененный текст
